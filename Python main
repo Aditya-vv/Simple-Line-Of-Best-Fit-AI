@@ -1,0 +1,122 @@
+import math
+import matplotlib.pyplot as plt
+
+# Example usage
+#x_vals = [1, 2, 3, 4, 5,6]
+#y_vals = [2,4,8,16,32,64]
+#x_vals = input("X_values : ").split()
+#y_vals = input("Y_values : ").split()
+x_vals, y_vals = [], []
+val = ''
+while val.lower() != 'x':
+    val = input("enter a x and y pair with a space separating them, x to run : ")
+    try:
+        x_vals.append(int(val.split()[0]))
+        y_vals.append(int(val.split()[1]))
+    except ValueError:
+        if val.lower() != 'x':
+            print("Only use numbers")
+    except IndexError:
+        print("Only use spaces to separate.")
+
+
+class SimpleAIRegressor:
+    def __init__(self):
+        self.mode = None  # "linear" or "exponential"
+        self.params = None
+
+    def mean(self, data):
+        return sum(data) / len(data)
+
+    def transpose(self, matrix):
+        return [[row[i] for row in matrix] for i in range(len(matrix[0]))]
+
+    def mat_mult(self, A, B):
+        result = [[0] * len(B[0]) for _ in range(len(A))]
+        for i in range(len(A)):
+            for j in range(len(B[0])):
+                for k in range(len(B)):
+                    result[i][j] += A[i][k] * B[k][j]
+        return result
+
+    def lstsq_solve(self, A, y):
+        # Least squares solution: (A^T A)^-1 A^T y
+        A_T = self.transpose(A)
+        ATA = self.mat_mult(A_T, A)
+        ATy = self.mat_mult(A_T, [[yi] for yi in y])
+        # 2x2 matrix inverse
+        a, b = ATA[0]
+        c, d = ATA[1]
+        det = a * d - b * c
+        if det == 0:
+            raise ValueError("Singular matrix")
+        inv = [[d / det, -b / det], [-c / det, a / det]]
+        result = self.mat_mult(inv, ATy)
+        return result[0][0], result[1][0]
+
+    def fit(self, x, y):
+        A_lin = [[xi, 1] for xi in x]
+        m, b = self.lstsq_solve(A_lin, y)
+
+        # For exponential: log(y) = rx + log(a)
+        log_y = [math.log(yi) for yi in y]
+        A_exp = [[xi, 1] for xi in x]
+        r, log_a = self.lstsq_solve(A_exp, log_y)
+        a = math.exp(log_a)
+
+        # Compute prediction errors
+        y_pred_lin = [m * xi + b for xi in x]
+        y_pred_exp = [a * math.exp(r * xi) for xi in x]
+
+        error_lin = self.mean([(y[i] - y_pred_lin[i]) ** 2 for i in range(len(y))])
+        error_exp = self.mean([(y[i] - y_pred_exp[i]) ** 2 for i in range(len(y))])
+
+        if error_lin <= error_exp:
+            self.mode = "linear"
+            self.params = (m, b)
+        else:
+            self.mode = "exponential"
+            self.params = (a, r)
+
+    def predict(self, x):
+        if self.mode == "linear":
+            m, b = self.params
+            return [m * xi + b for xi in x]
+        elif self.mode == "exponential":
+            a, r = self.params
+            return [a * math.exp(r * xi) for xi in x]
+        else:
+            raise ValueError("Model not trained.")
+
+    def equation(self):
+        if self.mode == "linear":
+            m, b = self.params
+            return f"y = {m:.2f}x + {b:.2f}"
+        elif self.mode == "exponential":
+            a, r = self.params
+            return f"y = {a:.2f} * e^({r:.2f}x)"
+        else:
+            return "Model not trained."
+
+    def plot(self, x, y, x_pre, y_pre):
+        y_pred = self.predict(x)
+        x_min, x_max = min(x+x_pre), max(x+x_pre)
+        x_smooth = [x_min + i * (x_max - x_min) / 100.0 for i in range(101)]
+        y_smooth = self.predict(x_smooth)
+
+        plt.scatter(x, y, color='blue', label='Data')
+        plt.scatter(x_pre, y_pre, color='green', label='Predictions')
+        plt.plot(x_smooth, y_smooth, color='red', label='Best Fit')
+        plt.title(self.equation())
+        plt.legend()
+        plt.show()
+
+ai = SimpleAIRegressor()
+ai.fit(x_vals, y_vals)
+print("Best Fit Equation:", ai.equation())
+
+x_test = [len(x_vals)+1,len(x_vals)+2,len(x_vals)+3]
+predict = ai.predict(x_test)
+print("Predictions:", predict)
+
+ai.plot(x_vals, y_vals, x_test, predict)
