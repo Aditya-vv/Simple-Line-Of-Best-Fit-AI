@@ -1,11 +1,10 @@
 import math
-import matplotlib.pyplot as plt
+plot = 1
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    plot = 0
 
-# Example usage
-#x_vals = [1, 2, 3, 4, 5,6]
-#y_vals = [2,4,8,16,32,64]
-#x_vals = input("X_values : ").split()
-#y_vals = input("Y_values : ").split()
 x_vals, y_vals = [], []
 val = ''
 while val.lower() != 'x':
@@ -119,4 +118,5 @@ x_test = [len(x_vals)+1,len(x_vals)+2,len(x_vals)+3]
 predict = ai.predict(x_test)
 print("Predictions:", predict)
 
-ai.plot(x_vals, y_vals, x_test, predict)
+if plot == 1:
+    ai.plot(x_vals, y_vals, x_test, predict)
